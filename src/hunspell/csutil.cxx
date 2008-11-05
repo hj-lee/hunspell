@@ -5274,6 +5274,7 @@ struct lang_map lang2enc[] = {
 {"hr", "ISO8859-2", LANG_hr},
 {"hu", "ISO8859-2", LANG_hu},
 {"it", "ISO8859-1", LANG_it},
+{"ko", "UTF-8", LANG_ko},
 {"la", "ISO8859-1", LANG_la},
 {"lv", "ISO8859-13", LANG_lv},
 {"nl", "ISO8859-1", LANG_nl},
