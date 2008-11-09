@@ -5325,6 +5325,11 @@ int initialize_utf_tbl() {
       utf_tbl[utf_lst[j].c].clower = utf_lst[j].clower;
       utf_tbl[utf_lst[j].c].cupper = utf_lst[j].cupper;
     }
+    /* Hangul syllables */
+    for (j = 0xAC00; j <= 0xD7A3; j++) {
+      utf_tbl[j].cletter = 1;
+      utf_tbl[j].clower = utf_tbl[j].cupper = j;
+    }
   } else return 1;
   return 0;
 }
