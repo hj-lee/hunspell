@@ -60,6 +60,9 @@ char * u16_u8(char * dest, int size, const w_char * src, int srclen);
 // convert UTF-8 characters to UTF-16
 int u8_u16(w_char * dest, int size, const char * src);
 
+// decompose UTF-8 Hangul syllables to jamos
+int hangul_decompose(char * dest, const char *src, int srclen);
+
 // sort 2-byte vector
 void flag_qsort(unsigned short flags[], int begin, int end);
 

@@ -110,8 +110,11 @@ int Hunspell::cleanword2(char * dest, const char * src,
        *p = '\0';
        return 0;
    }
-   
-   strncpy(dest, (char *) q, nl);
+
+   if (langnum == LANG_ko)
+       nl = hangul_decompose(dest, (char *) q, nl);
+   else
+       strncpy(dest, (char *) q, nl);
    *(dest + nl) = '\0';
    nl = strlen(dest);
    if (utf8) {
@@ -333,7 +336,8 @@ int Hunspell::spell(const char * word, int * info, char ** root)
 {
   struct hentry * rv=NULL;
   // need larger vector. For example, Turkish capital letter I converted a
-  // 2-byte UTF-8 character (dotless i) by mkallsmall.
+  // 2-byte UTF-8 character (dotless i) by mkallsmall. And each Korean
+  // Hangul syllable is converted to two or three Hangul Jamos.
   char cw[MAXWORDUTF8LEN];
   char wspace[MAXWORDUTF8LEN];
   w_char unicw[MAXWORDLEN];

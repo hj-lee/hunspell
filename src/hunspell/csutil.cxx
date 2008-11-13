@@ -175,6 +175,43 @@ int u8_u16(w_char * dest, int size, const char * src) {
     return u2 - dest;
 }
 
+int hangul_decompose(char *dest, const char *src, int srclen) {
+    const char *src_max = src + srclen;
+    char *d = dest;
+
+    while (src < src_max) {
+        if (((src + 2) < src_max) &&
+            ((src[0] & 0xF0) == 0xE0) &&
+            ((src[1] & 0xC0) == 0x80) &&
+            ((src[2] & 0xC0) == 0x80)) { // 3-bytes code
+            unsigned short c = ((src[0] & 0x0F) << 12) +
+                ((src[1] & 0x3F) << 6) + (src[2] & 0x3F);
+            if (c >= 0xAC00 && c <= 0xD7A3) {
+                unsigned short jamos[3];
+                c -= 0xAC00;
+                jamos[0] = 0x1100 + (c / (21 * 28)); // leading consonant
+                jamos[1] = 0x1161 + ((c / 28) % 21); // vowel
+                jamos[2] = 0x11A7 + (c % 28); // trailing consonant (if any)
+                for (int i = 0; i < ((c % 28) ? 3 : 2); i++) {
+                    *d++ = ((jamos[i] & 0xF000) >> 12) | 0xE0;
+                    *d++ = ((jamos[i] & 0x0FC0) >> 6) | 0x80;
+                    *d++ = (jamos[i] & 0x003F) | 0x80;
+                }
+                src += 3;
+           } else {
+               *d++ = *src++;
+               *d++ = *src++;
+               *d++ = *src++;
+           }
+       }
+       else {
+           *d++ = *src++;
+       }
+   }
+
+   return (d - dest);
+}
+
 void flag_qsort(unsigned short flags[], int begin, int end) {
     unsigned short reg;
     if (end > begin) {
