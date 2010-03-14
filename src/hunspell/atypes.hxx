@@ -2,6 +2,7 @@
 #define _ATYPES_HXX_
 
 #ifndef HUNSPELL_WARNING
+#include <stdio.h>
 #ifdef HUNSPELL_WARNING_ON
 #define HUNSPELL_WARNING fprintf
 #else

@@ -1,17 +1,10 @@
 #include "license.hunspell"
 #include "license.myspell"
 
-#ifndef MOZILLA_CLIENT
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <cctype>
-#else
 #include <stdlib.h> 
 #include <string.h>
 #include <stdio.h> 
 #include <ctype.h>
-#endif
 
 #include "csutil.hxx"
 #include "atypes.hxx"
@@ -38,16 +31,6 @@
 
 static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CID);
 static NS_DEFINE_CID(kUnicharUtilCID, NS_UNICHARUTIL_CID);
-#endif
-
-#ifdef MOZILLA_CLIENT
-#ifdef __SUNPRO_CC // for SunONE Studio compiler
-using namespace std;
-#endif
-#else
-#ifndef WIN32
-using namespace std;
-#endif
 #endif
 
 static struct unicode_info2 * utf_tbl = NULL;
@@ -681,7 +664,7 @@ void mkallcap_utf(w_char * u, int nc, int langnum) {
  }
 
  // conversion function for protected memory
- char * get_stored_pointer(char * s)
+ char * get_stored_pointer(const char * s)
  {
     char * p;
     memcpy(&p, s, sizeof(char *));
@@ -5313,7 +5296,7 @@ int initialize_utf_tbl() {
   if (utf_tbl) return 0;
   utf_tbl = (unicode_info2 *) malloc(CONTSIZE * sizeof(unicode_info2));
   if (utf_tbl) {
-    int j;
+    size_t j;
     for (j = 0; j < CONTSIZE; j++) {
       utf_tbl[j].cletter = 0;
       utf_tbl[j].clower = (unsigned short) j;
