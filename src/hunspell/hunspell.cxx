@@ -1,26 +1,14 @@
 #include "license.hunspell"
 #include "license.myspell"
 
-#ifndef MOZILLA_CLIENT
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#else
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#endif
 
 #include "hunspell.hxx"
 #include "hunspell.h"
 #include "config.h"
 #include "csutil.hxx"
-
-#ifndef MOZILLA_CLIENT
-#ifndef WIN32
-using namespace std;
-#endif
-#endif
 
 Hunspell::Hunspell(const char * affpath, const char * dpath, const char * key)
 {
@@ -500,9 +488,23 @@ int Hunspell::spell(const char * word, int * info, char ** root)
   if (wordbreak) {
     char * s;
     char r;
-    int corr = 0;
+    int nbr = 0;
     wl = strlen(cw);
     int numbreak = pAMgr ? pAMgr->get_numbreak() : 0;
+
+    // calculate break points for recursion limit
+    for (int j = 0; j < numbreak; j++) {
+      s = cw;
+      do {
+      	s = (char *) strstr(s, wordbreak[j]);
+      	if (s) { 
+		nbr++;
+		s++;
+	}
+      } while (s);
+    } 
+    if (nbr >= 10) return 0;
+
     // check boundary patterns (^begin and end$)
     for (int j = 0; j < numbreak; j++) {
       int plen = strlen(wordbreak[j]);
@@ -517,9 +519,9 @@ int Hunspell::spell(const char * word, int * info, char ** root)
 	    cw[wl - plen + 1] = r;
 	}
     }
+
     // other patterns
     for (int j = 0; j < numbreak; j++) {
-      int result = 0;
       int plen = strlen(wordbreak[j]);
       s=(char *) strstr(cw, wordbreak[j]);
       if (s && (s > cw) && (s < cw + wl - plen)) {
@@ -621,7 +623,7 @@ struct hentry * Hunspell::checkword(const char * w, int * info, char ** root)
             return NULL;
         }
         if (root) {
-            *root = mystrdup(&(he->word));
+            *root = mystrdup(he->word);
             if (*root && complexprefixes) {
                 if (utf8) reverseword_utf(*root); else reverseword(*root);
             }
@@ -640,7 +642,7 @@ struct hentry * Hunspell::checkword(const char * w, int * info, char ** root)
           // end of LANG speficic region
           if (he) {
                 if (root) {
-                    *root = mystrdup(&(he->word));
+                    *root = mystrdup(he->word);
                     if (*root && complexprefixes) {
                         if (utf8) reverseword_utf(*root); else reverseword(*root);
                     }
@@ -1469,7 +1471,10 @@ int Hunspell::analyze(char*** slst, const char * word)
       *dash='\0';
       // examine 2 sides of the dash
       if (dash[1] == '\0') { // base word ending with dash
-        if (spell(cw)) return line_tok(pSMgr->suggest_morph(cw), slst, MSEP_REC);
+        if (spell(cw)) {
+		char * p = pSMgr->suggest_morph(cw);
+		if (p) return line_tok(pSMgr->suggest_morph(cw), slst, MSEP_REC);
+	}
       } else if ((dash[1] == 'e') && (dash[2] == '\0')) { // XXX (HU) -e hat.
         if (spell(cw) && (spell("-e"))) {
                         st = pSMgr->suggest_morph(cw);
@@ -1645,7 +1650,7 @@ int Hunspell::get_xml_list(char ***slst, char * list, const char * tag) {
     if (!*slst) return 0;
     for (p = list, n = 0; (p = strstr(p, tag)); p++, n++) {
         int l = strlen(p);
-        (*slst)[n] = (char *) malloc(l);
+        (*slst)[n] = (char *) malloc(l + 1);
         if (!(*slst)[n]) return (n > 0 ? n - 1 : 0);
         get_xml_par((*slst)[n], p + strlen(tag) - 1, l);
     }
@@ -1941,6 +1946,6 @@ int Hunspell_remove(Hunhandle *pHunspell, const char * word) {
         return ((Hunspell*)pHunspell)->remove(word);
 }
 
-void Hunspell_free_list(Hunhandle *pHunspell, char *** slst, int n) {
+void Hunspell_free_list(Hunhandle *, char *** slst, int n) {
         freelist(slst, n);
 }

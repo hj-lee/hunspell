@@ -1,12 +1,11 @@
-#include <cstring>
-
 // glibc < 3.0 (for mkstemp)
 #ifndef __USE_MISC
 #define __USE_MISC
 #endif
 
-#include <cstdlib>
-#include <cstdio>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "config.h"
 #include "hunspell.hxx"
 #include "csutil.hxx"
@@ -67,6 +66,7 @@
     "/usr/share/myspell:" \
     "/usr/share/myspell/dicts"
 #define USEROOODIR \
+    ".openoffice.org/3/user/wordbook:" \
     ".openoffice.org2/user/wordbook:" \
     ".openoffice.org2.0/user/wordbook"
 #define OOODIR \
@@ -96,21 +96,21 @@ char text_conv[MAXLNLEN];
 #endif
 
 #if ENABLE_NLS
-#ifdef HAVE_LOCALE_H
-#include <locale.h>
-#include <langinfo.h>
-#endif
-
-#ifdef HAVE_LIBINTL_H
-#include <libintl.h>
+#  ifdef HAVE_LOCALE_H
+#    include <locale.h>
+#    ifdef HAVE_LANGINFO_CODESET
+#      include <langinfo.h>
+#    endif
+#  endif
+#  ifdef HAVE_LIBINTL_H
+#    include <libintl.h>
+#  else
+#    include <../../intl/libintl.h>
+#  endif
 #else
-#include <../../intl/libintl.h>
-#endif
-
-#else
-#define gettext
-#undef HAVE_LOCALE_H
-#undef HAVE_LIBINTL_H
+#  define gettext
+#  undef HAVE_LOCALE_H
+#  undef HAVE_LIBINTL_H
 #endif
 
 #ifdef HAVE_CURSES_H
@@ -134,8 +134,6 @@ extern char * mystrdup(const char * s);
 // file formats:
 
 enum { FMT_TEXT, FMT_LATEX, FMT_HTML, FMT_MAN, FMT_FIRST };
-
-//using namespace std;
 
 struct wordlist {
     char * word;
@@ -168,7 +166,6 @@ int filter_mode = NORMAL;
 int printgood = 0; // print only good words and lines
 int showpath = 0;  // show detected path of the dictionary
 int checkurl = 0;  // check URLs and mail addresses
-char * ui_lang = NULL; // locale for default dic_name
 const char * ui_enc = NULL;  // locale character encoding (default for I/O)
 const char * io_enc = NULL;  // I/O character encoding
 
@@ -1017,7 +1014,6 @@ printw(gettext("\n-- Type space to continue -- \n"));
 		i->next = dicwords;
 		dicwords = i;
 		// save
-		strcpy(buf,HOME);
 		if (HOME) strcpy(buf,HOME); else {
 		    fprintf(stderr, gettext("error - missing HOME variable\n"));
 		    break;
@@ -1148,7 +1144,6 @@ printw(gettext("\n-- Type space to continue -- \n"));
 		    }
 		    // save
 		    		    
-		    strcpy(buf,HOME);
 		    if (HOME) strcpy(buf,HOME); else {
 			fprintf(stderr, gettext("error - missing HOME variable\n"));
 			continue;
@@ -1382,11 +1377,13 @@ int main(int argc, char** argv)
 	int argstate = 0;
 	
 #ifdef ENABLE_NLS
-#ifdef HAVE_LOCALE_H
-	ui_lang = setlocale(LC_ALL, "");
+#  ifdef HAVE_LOCALE_H
+	setlocale(LC_ALL, "");
 	textdomain("hunspell");
-        ui_enc = nl_langinfo(CODESET);
-#endif
+#    ifdef HAVE_LANGINFO_CODESET
+	ui_enc = nl_langinfo(CODESET);
+#    endif
+#  endif
 #endif
 
 #ifdef HAVE_READLINE
@@ -1470,9 +1467,21 @@ int main(int argc, char** argv)
 			fprintf(stdout,gettext(HUNSPELL_PIPE_HEADING));
 			fflush(stdout);
 		} else if ((strcmp(argv[i],"-m")==0)) {
-			filter_mode = ANALYZE;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell:   Make possible root/affix combinations that aren't in the dictionary.
+             hunspell: Analyze the words of the input text
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = ANALYZE;
 		} else if ((strcmp(argv[i],"-s")==0)) {
-			filter_mode = STEM;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell:   Stop itself with a SIGTSTP signal after each line of input.
+             hunspell: Stem the words of the input text
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = STEM;
 		} else if ((strcmp(argv[i],"-t")==0)) {
 			format = FMT_LATEX;
 		} else if ((strcmp(argv[i],"-n")==0)) {
@@ -1482,15 +1491,45 @@ int main(int argc, char** argv)
 		} else if ((strcmp(argv[i],"-l")==0)) {
 			filter_mode = BADWORD;
 		} else if ((strcmp(argv[i],"-w")==0)) {
-			filter_mode = WORDFILTER;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell:   Specify additional characters that can be part of a word.
+             hunspell: Print mispelled words (= lines) from one word/line input
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = WORDFILTER;
 		} else if ((strcmp(argv[i],"-L")==0)) {
-			filter_mode = BADLINE;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell:   Number of lines of context to be shown at the bottom of the screen
+             hunspell: Print lines with mispelled words
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = BADLINE;
 		} else if ((strcmp(argv[i],"-u")==0)) {
-			filter_mode = AUTO0;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell: None
+             hunspell: Show typical misspellings
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = AUTO0;
 		} else if ((strcmp(argv[i],"-U")==0)) {
-			filter_mode = AUTO;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell: None
+             hunspell: Automatic correction of typical misspellings to stdout
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = AUTO;
 		} else if ((strcmp(argv[i],"-u2")==0)) {
-			filter_mode = AUTO2;
+            /*
+             if -a was used, don't override, i.e. keep ispell compatability
+             ispell: None
+             hunspell: Print typical misspellings in sed format
+            */
+			if (filter_mode != PIPE)
+			    filter_mode = AUTO2;
 		} else if ((strcmp(argv[i],"-G")==0)) {
 			printgood = 1;
 		} else if ((strcmp(argv[i],"-1")==0)) {
@@ -1515,13 +1554,26 @@ int main(int argc, char** argv)
 	
 	if (! dicname) {
 		if (! (dicname=getenv("DICTIONARY"))) {
-			if ((dicname=ui_lang) || (dicname=getenv("LANG"))) {
-			    dicname = mystrdup(dicname);
-			    char * dot = strchr(dicname, '.');
-			    if (dot) *dot = '\0';
-			    char * at = strchr(dicname, '@');
-			    if (at) *at = '\0';
-			} else {
+			/*
+			 * Search in order of LC_ALL, LC_MESSAGES &
+			 * LANG
+			*/
+			const char *tests[] = { "LC_ALL", "LC_MESSAGES", "LANG" };
+			for (size_t i = 0; i < sizeof(tests) / sizeof(const char*); ++i) {
+				if ((dicname=getenv(tests[i])) && strcmp(dicname, "") != 0) {
+					dicname = mystrdup(dicname);
+					char * dot = strchr(dicname, '.');
+					if (dot) *dot = '\0';
+					char * at = strchr(dicname, '@');
+					if (at) *at = '\0';
+					break;
+				}
+			}
+
+			if ((strcmp(dicname, "C") == 0) || (strcmp(dicname, "POSIX") == 0))
+			    dicname=mystrdup("en_US");
+
+			if (! dicname) {
 		            dicname=mystrdup(DEFAULTDICNAME);
 			}
 		} else {
@@ -1532,21 +1584,23 @@ int main(int argc, char** argv)
 	path = add(path, PATHSEP);          // <- check path in root directory
 	if (getenv("DICPATH")) path = add(add(path, getenv("DICPATH")), PATHSEP);
 	path = add(add(path, LIBDIR), PATHSEP);
-	path = add(add(add(add(path, HOME), DIRSEP), USEROOODIR), PATHSEP);
+	if (HOME) path = add(add(add(add(path, HOME), DIRSEP), USEROOODIR), PATHSEP);
 	path = add(path, OOODIR);
+
+	if (showpath) {
+		fprintf(stderr, gettext("SEARCH PATH:\n%s\n"), path);
+		fprintf(stderr, gettext("AVAILABLE DICTIONARIES (path is not mandatory for -d option):\n"));
+		search(path, NULL, NULL);
+	}
 
 	if (!privdicname) privdicname = mystrdup(getenv("WORDLIST"));
 
-        int diclen = strlen(dicname);
         char * dicplus = strchr(dicname, ',');
         if (dicplus) *dicplus = '\0';
 	char * aff = search(path, dicname, ".aff");
 	char * dic = search(path, dicname, ".dic");
 	if (aff && dic) {
 		if (showpath) {
-			fprintf(stderr, gettext("SEARCH PATH:\n%s\n"), path);
-			fprintf(stderr, gettext("AVAILABLE DICTIONARIES (path is not mandatory for -d option):\n"), path);
-			search(path, NULL, NULL);
 			fprintf(stderr, gettext("LOADED DICTIONARY:\n%s\n%s\n"), aff, dic);
 		}
 		pMS[0] = new Hunspell(aff, dic, key);
@@ -1569,7 +1623,7 @@ int main(int argc, char** argv)
                     } else if (dic) pMS[dmax-1]->add_dic(dic);
 		}
 	} else {
-		fprintf(stderr,gettext("Can't open affix or dictionary files.\n"));
+		fprintf(stderr,gettext("Can't open affix or dictionary files for dictionary named \"%s\".\n"), dicname);
 		exit(1);
 	}
 

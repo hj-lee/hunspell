@@ -1,27 +1,14 @@
 #include "license.hunspell"
 #include "license.myspell"
 
-#ifndef MOZILLA_CLIENT
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <cctype>
-#else
 #include <stdlib.h> 
 #include <string.h>
 #include <stdio.h> 
 #include <ctype.h>
-#endif
 
 #include "suggestmgr.hxx"
 #include "htypes.hxx"
 #include "csutil.hxx"
-
-#ifndef MOZILLA_CLIENT
-#ifndef WIN32
-using namespace std;
-#endif
-#endif
 
 const w_char W_VLINE = { '\0', '|' };
 
@@ -1742,11 +1729,10 @@ int SuggestMgr::ngram(int n, char * s1, const char * s2, int opt)
       if (ns < 2) break;
     }
   } else {  
-    char t[MAXSWUTF8L];
-    l1 = strlen(s1);
     l2 = strlen(s2);
     if (l2 == 0) return 0;
-    strcpy(t, s2);
+    l1 = strlen(s1);
+    char *t = mystrdup(s2);
     if (opt & NGRAM_LOWERING) mkallsmall(t, csconv);
     for (int j = 1; j <= n; j++) {
       ns = 0;
@@ -1759,6 +1745,7 @@ int SuggestMgr::ngram(int n, char * s1, const char * s2, int opt)
       nscore = nscore + ns;
       if (ns < 2) break;
     }
+    free(t);
   }
   
   ns = 0;
@@ -1783,12 +1770,13 @@ int SuggestMgr::leftcommonsubstring(char * s1, const char * s2) {
       u8_u16(su1, 1, s1);
       u8_u16(su2, 1, s2);
       unsigned short idx = (su2->h << 8) + su2->l;
-      if (*((short *)su1) != *((short *)su2) &&
-         (*((unsigned short *)su1) != unicodetolower(idx, langnum))) return 0;
+      unsigned short otheridx = (su1->h << 8) + su1->l;
+      if (otheridx != idx &&
+         (otheridx != unicodetolower(idx, langnum))) return 0;
       int l1 = u8_u16(su1, MAXSWL, s1);
       int l2 = u8_u16(su2, MAXSWL, s2);
       for(i = 1; (i < l1) && (i < l2) &&
-         (*((short *)(su1 + i)) == *((short *)(su2 + i))); i++);
+         (su1[i].l == su2[i].l) && (su1[i].h == su2[i].h); i++);
       return i;
     }
   } else {
@@ -1924,8 +1912,8 @@ void SuggestMgr::lcs(const char * s, const char * s2, int * l1, int * l2, char *
   for (j = 0; j <= n; j++) c[j] = 0;
   for (i = 1; i <= m; i++) {
     for (j = 1; j <= n; j++) {
-      if ((utf8) && (*((short *) su+i-1) == *((short *)su2+j-1))
-          || (!utf8) && ((*(s+i-1)) == (*(s2+j-1)))) {
+      if ( ((utf8) && (*((short *) su+i-1) == *((short *)su2+j-1)))
+          || ((!utf8) && ((*(s+i-1)) == (*(s2+j-1))))) {
         c[i*(n+1) + j] = c[(i-1)*(n+1) + j-1]+1;
         b[i*(n+1) + j] = LCS_UPLEFT;
       } else if (c[(i-1)*(n+1) + j] >= c[i*(n+1) + j-1]) {
