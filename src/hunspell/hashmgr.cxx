@@ -90,6 +90,10 @@ HashMgr::~HashMgr()
   
   if (ignorechars) free(ignorechars);
   if (ignorechars_utf16) free(ignorechars_utf16);
+
+#ifdef MOZILLA_CLIENT
+    delete [] csconv;
+#endif
 }
 
 // lookup a root word in the hashtable
@@ -278,7 +282,7 @@ int HashMgr::remove_forbidden_flag(const char * word) {
             if (dp->alen == 1) dp->alen = 0; // XXX forbidden words of personal dic.
             else {
                 unsigned short * flags2 =
-                    (unsigned short *) malloc(sizeof(short *) * (dp->alen - 1));
+                    (unsigned short *) malloc(sizeof(short) * (dp->alen - 1));
                 if (!flags2) return 1;
                 int i, j = 0;
                 for (i = 0; i < dp->alen; i++) {
@@ -369,7 +373,7 @@ int HashMgr::load_tables(const char * tpath, const char * key)
   /* remove byte order mark */
   if (strncmp(ts,"\xEF\xBB\xBF",3) == 0) {
     memmove(ts, ts+3, strlen(ts+3)+1);
-    HUNSPELL_WARNING(stderr, "warning: dic file begins with byte order mark: possible incompatibility with old Hunspell versions\n");
+    // warning: dic file begins with byte order mark: possible incompatibility with old Hunspell versions
   }
 
   tablesize = atoi(ts);
