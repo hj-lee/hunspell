@@ -18,11 +18,12 @@ FileMgr::FileMgr(const char * file, const char * key) {
     fin = fopen(file, "r");
     if (!fin) {
         // check hzipped file
-        char * st = (char *) malloc(strlen(file) + strlen(HZIP_EXTENSION));
+        char * st = (char *) malloc(strlen(file) + strlen(HZIP_EXTENSION) + 1);
         if (st) {
             strcpy(st, file);
             strcat(st, HZIP_EXTENSION);
             hin = new Hunzip(st, key);
+            free(st);
         }
     }    
     if (!fin && !hin) fail(MSG_OPEN, file);

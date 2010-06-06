@@ -51,7 +51,7 @@ Hunspell::~Hunspell()
     pSMgr = NULL;
     pAMgr = NULL;
 #ifdef MOZILLA_CLIENT
-    free(csconv);
+    delete [] csconv;
 #endif
     csconv= NULL;
     if (encoding) free(encoding);
@@ -390,21 +390,24 @@ int Hunspell::spell(const char * word, int * info, char ** root)
 	    // prefixes separated by apostrophe (SANT'ELIA -> Sant'+Elia).
             if (pAMgr && strchr(cw, '\'')) {
                 wl = mkallsmall2(cw, unicw, nc);
-        	char * apostrophe = strchr(cw, '\'');
-                if (utf8) {
-            	    w_char tmpword[MAXWORDLEN];
-            	    *apostrophe = '\0';
-            	    wl2 = u8_u16(tmpword, MAXWORDLEN, cw);
-            	    *apostrophe = '\'';
-		    if (wl2 < nc) {
-		        mkinitcap2(apostrophe + 1, unicw + wl2 + 1, nc - wl2 - 1);
-			rv = checkword(cw, info, root);
-			if (rv) break;
+        	//There are no really sane circumstances where this could fail,
+        	//but anyway...
+        	if (char * apostrophe = strchr(cw, '\'')) {
+                    if (utf8) {
+            	        w_char tmpword[MAXWORDLEN];
+            	        *apostrophe = '\0';
+            	        wl2 = u8_u16(tmpword, MAXWORDLEN, cw);
+            	        *apostrophe = '\'';
+		        if (wl2 < nc) {
+		            mkinitcap2(apostrophe + 1, unicw + wl2 + 1, nc - wl2 - 1);
+			    rv = checkword(cw, info, root);
+			    if (rv) break;
+		        }
+                    } else {
+		        mkinitcap2(apostrophe + 1, unicw, nc);
+		        rv = checkword(cw, info, root);
+		        if (rv) break;
 		    }
-                } else {
-		    mkinitcap2(apostrophe + 1, unicw, nc);
-		    rv = checkword(cw, info, root);
-		    if (rv) break;
 		}
 		mkinitcap2(cw, unicw, nc);
 		rv = checkword(cw, info, root);
@@ -816,7 +819,7 @@ int Hunspell::suggest(char*** slst, const char * word)
   // END OF LANG_hu section
 
   // try ngram approach since found nothing
-  if ((ns == 0 || onlycmpdsug) && pAMgr && (pAMgr->get_maxngramsugs() != 0)) {
+  if ((ns == 0 || onlycmpdsug) && pAMgr && (pAMgr->get_maxngramsugs() != 0) && (*slst)) {
       switch(captype) {
           case NOCAP: {
               ns = pSMgr->ngsuggest(*slst, cw, ns, pHMgr, maxdic);
@@ -850,15 +853,16 @@ int Hunspell::suggest(char*** slst, const char * word)
   }
 
   // try dash suggestion (Afo-American -> Afro-American)
-  if (strchr(cw, '-')) {
-     char * pos = strchr(cw, '-');
+  if (char * pos = strchr(cw, '-')) {
      char * ppos = cw;
      int nodashsug = 1;
      char ** nlst = NULL;
      int nn = 0;
      int last = 0;
-     for (int j = 0; j < ns && nodashsug == 1; j++) {
-        if (strchr((*slst)[j], '-')) nodashsug = 0;
+     if (*slst) {
+        for (int j = 0; j < ns && nodashsug == 1; j++) {
+           if (strchr((*slst)[j], '-')) nodashsug = 0;
+        }
      }
      while (nodashsug && !last) {
 	if (*pos == '\0') last = 1; else *pos = '\0';
@@ -1613,7 +1617,12 @@ int Hunspell::get_xml_par(char * dest, const char * par, int max)
    *d = '\0';
    mystrrep(dest, "&lt;", "<");
    mystrrep(dest, "&amp;", "&");
-   return d - dest;
+   return (int)(d - dest);
+}
+
+int Hunspell::get_langnum() const
+{
+   return langnum;
 }
 
 // return the beginning of the element (attr == NULL) or the attribute
@@ -1648,7 +1657,10 @@ int Hunspell::get_xml_list(char ***slst, char * list, const char * tag) {
         int l = strlen(p);
         (*slst)[n] = (char *) malloc(l + 1);
         if (!(*slst)[n]) return (n > 0 ? n - 1 : 0);
-        get_xml_par((*slst)[n], p + strlen(tag) - 1, l);
+        if (!get_xml_par((*slst)[n], p + strlen(tag) - 1, l)) {
+            free((*slst)[n]);
+            break;
+        }
     }
     return n;
 }
@@ -1665,7 +1677,7 @@ int Hunspell::spellml(char*** slst, const char * word)
   if (!q2) return 0; // bad XML input
   if (check_xml_par(q, "type=", "analyze")) {
       int n = 0, s = 0;
-      if (get_xml_par(cw, strchr(q2, '>'), MAXWORDUTF8LEN)) n = analyze(slst, cw);
+      if (get_xml_par(cw, strchr(q2, '>'), MAXWORDUTF8LEN - 10)) n = analyze(slst, cw);
       if (n == 0) return 0;
       // convert the result to <code><a>ana1</a><a>ana2</a></code> format
       for (int i = 0; i < n; i++) s+= strlen((*slst)[i]);
@@ -1686,13 +1698,13 @@ int Hunspell::spellml(char*** slst, const char * word)
       (*slst)[0] = r;
       return 1;
   } else if (check_xml_par(q, "type=", "stem")) {
-      if (get_xml_par(cw, strchr(q2, '>'), MAXWORDUTF8LEN)) return stem(slst, cw);
+      if (get_xml_par(cw, strchr(q2, '>'), MAXWORDUTF8LEN - 1)) return stem(slst, cw);
   } else if (check_xml_par(q, "type=", "generate")) {
-      int n = get_xml_par(cw, strchr(q2, '>'), MAXWORDUTF8LEN);
+      int n = get_xml_par(cw, strchr(q2, '>'), MAXWORDUTF8LEN - 1);
       if (n == 0) return 0;
       char * q3 = strstr(q2 + 1, "<word");
       if (q3) {
-        if (get_xml_par(cw2, strchr(q3, '>'), MAXWORDUTF8LEN)) {
+        if (get_xml_par(cw2, strchr(q3, '>'), MAXWORDUTF8LEN - 1)) {
             return generate(slst, cw, cw2);
         }
       } else {
@@ -1901,7 +1913,7 @@ int Hunspell_stem(Hunhandle *pHunspell, char*** slst, const char * word)
         return ((Hunspell*)pHunspell)->stem(slst, word);
 }
 
-int Hunspell_stem(Hunhandle *pHunspell, char*** slst, char** desc, int n)
+int Hunspell_stem2(Hunhandle *pHunspell, char*** slst, char** desc, int n)
 {
         return ((Hunspell*)pHunspell)->stem(slst, desc, n);
 }
@@ -1912,7 +1924,7 @@ int Hunspell_generate(Hunhandle *pHunspell, char*** slst, const char * word,
         return ((Hunspell*)pHunspell)->generate(slst, word, word2);
 }
 
-int Hunspell_generate(Hunhandle *pHunspell, char*** slst, const char * word,
+int Hunspell_generate2(Hunhandle *pHunspell, char*** slst, const char * word,
     char** desc, int n)
 {
         return ((Hunspell*)pHunspell)->generate(slst, word, desc, n);
