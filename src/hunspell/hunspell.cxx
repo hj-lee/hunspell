@@ -33,9 +33,10 @@ Hunspell::Hunspell(const char * affpath, const char * dpath, const char * key)
     /* encoding from the Affix Manager for that dictionary */
     char * try_string = pAMgr->get_try_string();
     encoding = pAMgr->get_encoding();
-    csconv = get_current_cs(encoding);
     langnum = pAMgr->get_langnum();
     utf8 = pAMgr->get_utf8();
+    if (!utf8)
+        csconv = get_current_cs(encoding);
     complexprefixes = pAMgr->get_complexprefixes();
     wordbreak = pAMgr->get_breaktable();
 
@@ -569,6 +570,11 @@ struct hentry * Hunspell::checkword(const char * w, int * info, char ** root)
      word = w2;
   } else word = w;
 
+  len = strlen(word);
+
+  if (!len)
+      return NULL;
+
   // word reversing wrapper for complex prefixes
   if (complexprefixes) {
     if (word != w2) {
@@ -606,7 +612,6 @@ struct hentry * Hunspell::checkword(const char * w, int * info, char ** root)
   // check with affixes
   if (!he && pAMgr) {
      // try stripping off affixes */
-     len = strlen(word);
      he = pAMgr->affix_check(word, len, 0);
 
      // check compound restriction and onlyupcase
@@ -959,10 +964,12 @@ int Hunspell::suggest(char*** slst, const char * word)
       if (strcmp((*slst)[k], (*slst)[j]) == 0) {
         free((*slst)[j]);
         l--;
+        break;
       }
     }
     l++;
   }
+  ns = l;
 
   // output conversion
   rl = (pAMgr) ? pAMgr->get_oconvtable() : NULL;
@@ -1475,7 +1482,12 @@ int Hunspell::analyze(char*** slst, const char * word)
       if (dash[1] == '\0') { // base word ending with dash
         if (spell(cw)) {
 		char * p = pSMgr->suggest_morph(cw);
-		if (p) return line_tok(pSMgr->suggest_morph(cw), slst, MSEP_REC);
+		if (p) {
+		    int ret = line_tok(p, slst, MSEP_REC);
+		    free(p);
+		    return ret;
+		}
+		
 	}
       } else if ((dash[1] == 'e') && (dash[2] == '\0')) { // XXX (HU) -e hat.
         if (spell(cw) && (spell("-e"))) {
@@ -1658,7 +1670,7 @@ int Hunspell::get_xml_list(char ***slst, char * list, const char * tag) {
     for (p = list, n = 0; (p = strstr(p, tag)); p++, n++) {
         int l = strlen(p);
         (*slst)[n] = (char *) malloc(l + 1);
-        if (!(*slst)[n]) return (n > 0 ? n - 1 : 0);
+        if (!(*slst)[n]) return n;
         if (!get_xml_par((*slst)[n], p + strlen(tag) - 1, l)) {
             free((*slst)[n]);
             break;
@@ -1710,12 +1722,14 @@ int Hunspell::spellml(char*** slst, const char * word)
             return generate(slst, cw, cw2);
         }
       } else {
-        char ** slst2;
-        if ((q2 = strstr(q2 + 1, "<code")) &&
-          (n = get_xml_list(&slst2, strchr(q2, '>'), "<a>"))) {
-             int n2 = generate(slst, cw, slst2, n);
-             freelist(&slst2, n);
-             return uniqlist(*slst, n2);
+        if ((q2 = strstr(q2 + 1, "<code"))) {
+          char ** slst2;
+          if ((n = get_xml_list(&slst2, strchr(q2, '>'), "<a>"))) {
+            int n2 = generate(slst, cw, slst2, n);
+            freelist(&slst2, n);
+            return uniqlist(*slst, n2);
+          }
+          freelist(&slst2, n);
         }
       }
   }

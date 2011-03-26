@@ -1,3 +1,93 @@
+2011-01-03 Németh László <nemeth at OOo>:
+	* NEWS and THANKS: update for release 1.2.13
+
+2010-12-20 Németh László <nemeth at OOo>:
+        * affixmgr.cxx: hun#3140784
+
+2010-12-16 Németh László <nemeth at OOo>:
+        * affixmgr.cxx: 
+        - improved fix of hun#2970242 (supporting
+          zero affixes, reported by Ruud Baars
+        - tests/opentaal_cpdpat{,2}: test files
+
+        - switching off default BREAK parameters by BREAK 0,
+          reported by Ruud Baars
+
+        - hun#2999225, reported by Ruud Baars
+
+2010-12-11 Németh László <nemeth at OOo>:
+        * affixmgr.cxx: fix hun#2970242 (CHECKCOMPOUNDPATTERN only with flags),
+          the bug reported by Ruud Baars
+        * tests/2970242.*: test files
+
+        * tests/2970240.*: test files for CHECKCOMPOUNDPATTERN fix (check all
+          boundaries in compound words, fixed by the previous CHECKCOMPOUNDREP
+          fix), the bug reported by Ruud Baars
+
+        * win_api/Makefile.cygwin: update
+
+2010-12-09 Caolán McNamara <cmc at OOo>:
+	* moz#617953 fix leak
+
+2010-11-08 Caolán McNamara <cmc at OOo>:
+	* rhbz#650503 crash in arabic dictionary
+
+2010-11-05 Caolán McNamara <cmc at OOo>:
+	* rhbz#648740 don't warn on empty flagvector
+
+2010-11-03 Caolán McNamara <cmc at OOo>:
+	* logically we shouldn't need a csconv table in utf-8 mode
+
+2010-10-27 Németh László <nemeth at OOo>:
+	* hun#3000055 (requested by Ruud Baars) add REP boundary specifiation:
+	  REP ^word$ xxxx
+	  REP ^wordstarting xxxx
+	  REP wordending$ xxxx
+
+	* hun#3008434 (requested by Adrián Chaves Fernández) and
+	  hun#3018929 (requested by Ruud Baars): REP with more than 2 words:
+	  REP morethantwo more_than_two
+
+	* suggestmgr.cxx: fix incomplete suggestion list for capitalized words,
+	  eg. missing Machtstrijd->Machtsstrijd in the Dutch dictionary
+	  (reported by Ruud Bars)
+
+	* tests, man: related updates
+
+2010-10-12 Caolán McNamara <cmc at OOo>:
+	* moz#603311 HashMgr::load_tables leaks dict when decode_flags fails
+	* fix mem leak found with new tests
+	* hun#3084340 allow underscores in html entity names
+
+2010-10-07 Németh László <nemeth at OOo>:
+	* affixmgr.cxx: 
+	- hun#2970239 fix bad suggestion of forbidden compound words
+	- hun#2999224 fix keepcase feature on compound words (only partial
+	  fix for COMPOUNDRULE based compounding)
+	- fix checkcompoundrep feature in compound words (check all boundaries,
+	  not only the last one)
+	  Problems reported by Ruud Baars.
+	  
+	* tests/opentaal_forbiddenword[12]*, tests/opentaal_keepcase*:
+	  new test files for the previous fixes
+	* tests/checkcompoundrep: extended test file.
+
+2010-09-05 Caolán McNamara <cmc at OOo>:
+	* moz#583582 fix double buffer gcc fortify issue
+
+2010-08-13 Caolán McNamara <cmc at OOo>:
+	* moz#586671 AffixMgr::parse_convtable leaks pattern/pattern2 if it
+	can't create both
+	* moz#586686 tidy up get_xml_list and friends
+
+2010-08-10 Caolán McNamara <cmc at OOo>:
+	* hun#3022860 fix remove duplicate code
+
+2010-07-17 Caolán McNamara <cmc at OOo>:
+	* remove ununsed get_default_enc and avoid potential misrecognition of
+	three letter language ids
+	* normalize encoding names before lookup
+
 2010-07-05 Caolán McNamara <cmc at OOo>:
 	* hun#2286060 add Hangul syllables to unicode tables
 
