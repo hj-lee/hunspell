@@ -1,3 +1,65 @@
+2011-01-26 Németh László <nemeth at OOo>:
+	* affixmgr.cxx: fix for moz#626195 (memcheck problem with FULLSTRIP).
+
+	* affixmgr.*, suggestmgr.cxx: FORBIDWARN parameter (see manual)
+
+2011-01-24 Németh László <nemeth at OOo>:
+	* suffixmgr.cxx: fix bad suggestion of forbidden compound words, eg. 
+	  "termijndoel" with the Dutch dictionary. Reported by Ruud Baars.
+
+	* latexparser.cxx: fix double apostrophe TeX quoation mark tokenization
+	  (hun#3119776), reported by Wybodekker at SF.net.
+
+	* tests/suggestiontest/*: multilanguage and single Hunspell version, see README
+	* tests/suggestiontest/prepare2: for make -f Makefile.orig single
+
+2011-01-22 Németh László <nemeth at OOo>:
+	* affixmgr.*, suggestmgr.*: new features
+	  ONLYMAXDIFF: remove all bad ngram suggestions (default mode keeps one)
+	  NONGRAMSUGGEST: similar to NOSUGGEST, but it forbids to use the word
+	  in ngram based (more, than 1-character distance) suggestions.
+
+2011-01-21 Németh László <nemeth at OOo>:
+	* suggestmgr.*: limit wild suggestions (hun#2970237 by Ruud Baars)
+	- limited compound word suggestions
+	- improved and limited ngram based suggestions
+	* tests/*.sug: modified test files
+	- feature MAXCPDSUGS:
+	  MAXCPDSUGS 0 : no compound suggestion, suggested by
+	  Finn Gruwier Larsen in hunfeat#2836033
+	  MAXCPDSUGS n : max. ~n compound suggestions
+	- feature MAXDIFF: differency limit for ngram suggestions: 0-10 
+	  eg. MAXDIFF 5: normal (default) limit
+	  MAXDIFF 0: only one ngram suggestion
+	  MAXDIFF 10: ~maxngramsugs ngram suggestions 
+
+	* affixmgr.*, hunspell.*: add flag FORCEUCASE (hun#2999228), force
+	  capitalization of compound words, see Hunspell 4 manual),
+	  suggested by Ruud Baars
+	  test/forceucase.*: test files
+
+	* affixmgr.*, hunspell.*: add flag WARN (hun#1808861), optional warning feature
+	  for rare words, suggested by Ruud Baars
+	  tests/warn: test files
+	* tools/hunspell.cxx: add option -r for optional filtering of rare words
+
+	* affixmgr.cxx: fix hun#3161359 (gcc warnings) reported by Ryan VanderMeulen.
+
+2011-01-17 Németh László <nemeth at OOo>:
+	* suggestmgr.cxx: fix hun#3158994 and hun#3159027 (missing csconv table
+	  using awkward 8bit capitalization of UTF-8 encoded dictionary words with PHONE
+	  suggestion, reported by benjarobin and dicollecte at SF.net).
+
+2011-01-13 Németh László <nemeth at OOo>:
+        * affixmgr.cxx: ONLYINCOMPOUND fix for hun#2999224 (fogemorphene
+          was allowed in end position of compoundings). Reported by Ruud Baars.
+        * tests/onlyincompound2.*: test files
+
+2011-01-10 Ingo H. de Boer <idb_winshell at SF.net>:
+	* win_api/{hunspell,libhunspell, testparser}.vcproj: updated project
+	  files for the library and the executables. Compiling problem
+	  also reported by Don Walker.
+
 2011-01-06 Németh László <nemeth at OOo>:
         * affixmgr.cxx: fix freedesktop#32850 (program halt during Hungarian
           spell checking of the word "6csillagocska6", reported by András Tímár)
