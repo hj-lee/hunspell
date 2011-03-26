@@ -10,6 +10,13 @@
 #include "atypes.hxx"
 #include "langnum.hxx"
 
+// Unicode character encoding information
+struct unicode_info {
+  unsigned short c;
+  unsigned short cupper;
+  unsigned short clower;
+};
+
 #ifdef OPENOFFICEORG
 #  include <unicode/uchar.h>
 #else
@@ -32,6 +39,12 @@
 static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CID);
 static NS_DEFINE_CID(kUnicharUtilCID, NS_UNICHARUTIL_CID);
 #endif
+
+struct unicode_info2 {
+  char cletter;
+  unsigned short cupper;
+  unsigned short clower;
+};
 
 static struct unicode_info2 * utf_tbl = NULL;
 static int utf_tbl_count = 0; // utf_tbl can be used by multiple Hunspell instances
@@ -578,8 +591,9 @@ char * copy_field(char * dest, const char * morph, const char * var)
 char * mystrrep(char * word, const char * pat, const char * rep) {
     char * pos = strstr(word, pat);
     if (pos) {
-        int replen = strlen(rep);
-        int patlen = strlen(pat);
+      int replen = strlen(rep);
+      int patlen = strlen(pat);
+      while (pos) {
         if (replen < patlen) {
             char * end = word + strlen(word);
             char * next = pos + replen;
@@ -593,6 +607,8 @@ char * mystrrep(char * word, const char * pat, const char * rep) {
             for (; prev >= end; *next = *prev, prev--, next--);
         }
         strncpy(pos, rep, replen);
+        pos = strstr(word, pat);
+      }
     }
     return word;
 }
@@ -5153,35 +5169,78 @@ static struct cs_info iscii_devanagari_tbl[] = {
 { 0x00, 0xff, 0xff }
 };
 
-static struct enc_entry encds[] = {
-{"ISO8859-1",iso1_tbl},
-{"ISO8859-2",iso2_tbl},
-{"ISO8859-3",iso3_tbl},
-{"ISO8859-4",iso4_tbl},
-{"ISO8859-5",iso5_tbl},
-{"ISO8859-6",iso6_tbl},
-{"ISO8859-7",iso7_tbl},
-{"ISO8859-8",iso8_tbl},
-{"ISO8859-9",iso9_tbl},
-{"ISO8859-10",iso10_tbl},
-{"KOI8-R",koi8r_tbl},
-{"KOI8-U",koi8u_tbl},
-{"microsoft-cp1251",cp1251_tbl},
-{"ISO8859-13", iso13_tbl},
-{"ISO8859-14", iso14_tbl},
-{"ISO8859-15", iso15_tbl},
-{"ISCII-DEVANAGARI", iscii_devanagari_tbl}
+struct enc_entry {
+  const char * enc_name;
+  struct cs_info * cs_table;
 };
 
+static struct enc_entry encds[] = {
+  {"iso88591",iso1_tbl},                     //ISO-8859-1
+  {"iso88592",iso2_tbl},                     //ISO-8859-2
+  {"iso88593",iso3_tbl},                     //ISO-8859-3
+  {"iso88594",iso4_tbl},                     //ISO-8859-4
+  {"iso88595",iso5_tbl},                     //ISO-8859-5
+  {"iso88596",iso6_tbl},                     //ISO-8859-6
+  {"iso88597",iso7_tbl},                     //ISO-8859-7
+  {"iso88598",iso8_tbl},                     //ISO-8859-8
+  {"iso88599",iso9_tbl},                     //ISO-8859-9
+  {"iso885910",iso10_tbl},                   //ISO-8859-10
+  {"iso885913", iso13_tbl},                  //ISO-8859-13
+  {"iso885914", iso14_tbl},                  //ISO-8859-14
+  {"iso885915", iso15_tbl},                  //ISO-8859-15
+  {"koi8r",koi8r_tbl},                       //KOI8-R
+  {"koi8u",koi8u_tbl},                       //KOI8-U
+  {"cp1251",cp1251_tbl},                     //CP-1251
+  {"microsoftcp1251",cp1251_tbl},            //microsoft-cp1251
+  {"xisciias", iscii_devanagari_tbl},        //x-iscii-as
+  {"isciidevanagari", iscii_devanagari_tbl}  //ISCII-DEVANAGARI
+};
+
+/* map to lower case and remove non alphanumeric chars */
+static void toAsciiLowerAndRemoveNonAlphanumeric( const char* pName, char* pBuf )
+{
+    while ( *pName )
+    {
+        /* A-Z */
+        if ( (*pName >= 0x41) && (*pName <= 0x5A) )
+        {
+            *pBuf = (*pName)+0x20;  /* toAsciiLower */
+            pBuf++;
+        }
+        /* a-z, 0-9 */
+        else if ( ((*pName >= 0x61) && (*pName <= 0x7A)) ||
+                  ((*pName >= 0x30) && (*pName <= 0x39)) )
+        {
+            *pBuf = *pName;
+            pBuf++;
+        }
+
+        pName++;
+    }
+
+    *pBuf = '\0';
+}
+
 struct cs_info * get_current_cs(const char * es) {
-  struct cs_info * ccs = encds[0].cs_table;
+  char *normalized_encoding = new char[strlen(es)+1];
+  toAsciiLowerAndRemoveNonAlphanumeric(es, normalized_encoding);
+
+  struct cs_info * ccs = NULL;
   int n = sizeof(encds) / sizeof(encds[0]);
   for (int i = 0; i < n; i++) {
-    if (strcmp(es,encds[i].enc_name) == 0) {
+    if (strcmp(normalized_encoding,encds[i].enc_name) == 0) {
       ccs = encds[i].cs_table;
       break;
     }
   }
+
+  delete[] normalized_encoding;
+
+  if (!ccs) {
+    HUNSPELL_WARNING(stderr, "error: unknown encoding %s: using %s as fallback\n", es, encds[0].enc_name);
+    ccs = encds[0].cs_table;
+  }
+
   return ccs;
 }
 #else
@@ -5291,52 +5350,47 @@ char * get_casechars(const char * enc) {
     return mystrdup(expw);
 }
 
+// language to encoding default map
 
-
-static struct lang_map lang2enc[] = {
-{"ar", "UTF-8", LANG_ar},
-{"az", "UTF-8", LANG_az},
-{"bg", "microsoft-cp1251", LANG_bg},
-{"ca", "ISO8859-1", LANG_ca},
-{"cs", "ISO8859-2", LANG_cs},
-{"da", "ISO8859-1", LANG_da},
-{"de", "ISO8859-1", LANG_de},
-{"el", "ISO8859-7", LANG_el},
-{"en", "ISO8859-1", LANG_en},
-{"es", "ISO8859-1", LANG_es},
-{"eu", "ISO8859-1", LANG_eu},
-{"gl", "ISO8859-1", LANG_gl},
-{"fr", "ISO8859-15", LANG_fr},
-{"hr", "ISO8859-2", LANG_hr},
-{"hu", "ISO8859-2", LANG_hu},
-{"it", "ISO8859-1", LANG_it},
-{"ko", "UTF-8", LANG_ko},
-{"la", "ISO8859-1", LANG_la},
-{"lv", "ISO8859-13", LANG_lv},
-{"nl", "ISO8859-1", LANG_nl},
-{"pl", "ISO8859-2", LANG_pl},
-{"pt", "ISO8859-1", LANG_pt},
-{"sv", "ISO8859-1", LANG_sv},
-{"tr", "UTF-8", LANG_tr},
-{"ru", "KOI8-R", LANG_ru},
-{"uk", "KOI8-U", LANG_uk}
+struct lang_map {
+  const char * lang;
+  int num;
 };
 
+static struct lang_map lang2enc[] = {
+{"ar", LANG_ar},
+{"az", LANG_az},
+{"bg", LANG_bg},
+{"ca", LANG_ca},
+{"cs", LANG_cs},
+{"da", LANG_da},
+{"de", LANG_de},
+{"el", LANG_el},
+{"en", LANG_en},
+{"es", LANG_es},
+{"eu", LANG_eu},
+{"gl", LANG_gl},
+{"fr", LANG_fr},
+{"hr", LANG_hr},
+{"hu", LANG_hu},
+{"it", LANG_it},
+{"ko", LANG_ko},
+{"la", LANG_la},
+{"lv", LANG_lv},
+{"nl", LANG_nl},
+{"pl", LANG_pl},
+{"pt", LANG_pt},
+{"sv", LANG_sv},
+{"tr", LANG_tr},
+{"ru", LANG_ru},
+{"uk", LANG_uk}
+};
 
-const char * get_default_enc(const char * lang) {
-  int n = sizeof(lang2enc) / sizeof(lang2enc[0]);
-  for (int i = 0; i < n; i++) {
-    if (strcmp(lang,lang2enc[i].lang) == 0) {
-      return lang2enc[i].def_enc;
-    }
-  }
-  return NULL;
-}
 
 int get_lang_num(const char * lang) {
   int n = sizeof(lang2enc) / sizeof(lang2enc[0]);
   for (int i = 0; i < n; i++) {
-    if (strncmp(lang,lang2enc[i].lang,2) == 0) {
+    if (strcmp(lang, lang2enc[i].lang) == 0) {
       return lang2enc[i].num;
     }
   }
