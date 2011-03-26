@@ -5611,6 +5611,7 @@ struct lang_map {
 static struct lang_map lang2enc[] = {
 {"ar", LANG_ar},
 {"az", LANG_az},
+{"az_AZ", LANG_az}, // for back-compatibility
 {"bg", LANG_bg},
 {"ca", LANG_ca},
 {"cs", LANG_cs},
@@ -5624,6 +5625,7 @@ static struct lang_map lang2enc[] = {
 {"fr", LANG_fr},
 {"hr", LANG_hr},
 {"hu", LANG_hu},
+{"hu_HU", LANG_hu}, // for back-compatibility
 {"it", LANG_it},
 {"ko", LANG_ko},
 {"la", LANG_la},
@@ -5633,6 +5635,7 @@ static struct lang_map lang2enc[] = {
 {"pt", LANG_pt},
 {"sv", LANG_sv},
 {"tr", LANG_tr},
+{"tr_TR", LANG_tr}, // for back-compatibility
 {"ru", LANG_ru},
 {"uk", LANG_uk}
 };
