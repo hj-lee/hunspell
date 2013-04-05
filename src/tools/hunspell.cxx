@@ -713,10 +713,10 @@ if (pos >= 0) {
 			int ns = pMS[d]->suggest(&wlst, token);
 			if (ns == 0) {
 		    		fprintf(stdout,"# %s %d", token,
-		    		    parser->get_tokenpos() + pos);
+		    		    parser->get_token_charpos() + pos);
 			} else {
 				fprintf(stdout,"& %s %d %d: ", token, ns,
-				    parser->get_tokenpos() + pos);
+				    parser->get_token_charpos() + pos);
 				fprintf(stdout,"%s", chenc(wlst[0], dic_enc[d], io_enc));
 			}
 			for (int j = 1; j < ns; j++) {
@@ -748,10 +748,10 @@ if (pos >= 0) {
 			int ns = pMS[d]->suggest(&wlst, chenc(token, io_enc, dic_enc[d]));
 			if (ns == 0) {
 		    		fprintf(stdout,"# %s %d", chenc(token, io_enc, ui_enc),
-		    		    parser->get_tokenpos() + pos);
+		    		    parser->get_token_charpos() + pos);
 			} else {
 				fprintf(stdout,"& %s %d %d: ", chenc(token, io_enc, ui_enc), ns,
-				    parser->get_tokenpos() + pos);
+				    parser->get_token_charpos() + pos);
 				fprintf(stdout,"%s", chenc(wlst[0], dic_enc[d], ui_enc));
 			}
 			for (int j = 1; j < ns; j++) {

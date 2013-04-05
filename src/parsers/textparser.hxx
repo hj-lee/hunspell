@@ -41,6 +41,10 @@ protected:
   unsigned short *    wordchars_utf16;
   int                 wclen;
 
+  // for tracking UTF-8 character positions
+  int                 head_char;
+  int                 token_char;
+    
 public:
  
   TextParser();
@@ -56,6 +60,8 @@ public:
   void                set_url_checking(int check);
 
   int                 get_tokenpos();
+  int                 get_token_charpos();  
+    
   int                 is_wordchar(char * w);
   const char *        get_latin1(char * s);
   char *              next_char();
