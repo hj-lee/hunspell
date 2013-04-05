@@ -402,15 +402,26 @@ void log(char * message)
 int putdic(char * word, Hunspell * pMS)
 {
     char * w;
-
     word = chenc(word, ui_enc, dic_enc[0]);
-    
+
+    if (pMS->get_langnum() == LANG_ko) {
+	int len = strlen(word);
+	char * buf = (char *)malloc(len * 3 + 1);
+	int newlen = hangul_decompose(buf, word, len);
+	buf[newlen] = 0;
+	word = buf;
+    }
+
+    int ret;
     if (((w = strstr(word + 1, "/")) == NULL)) {
-        if (*word == '*') return pMS->remove(word + 1);
-	else return pMS->add(word);
+        if (*word == '*') ret = pMS->remove(word + 1);
+	else ret = pMS->add(word);
+	if (pMS->get_langnum() == LANG_ko) {
+	    free(word);
+	}
+	return ret;
     } else {
 	char c;
-	int ret;
 	c = *w;
 	*w = '\0';
 	if (*(w+1) == '/') {
@@ -419,6 +430,9 @@ int putdic(char * word, Hunspell * pMS)
 	    ret = pMS->add_with_affix(word, w + 1); // word/pattern
 	}
 	*w = c;
+	if (pMS->get_langnum() == LANG_ko) {
+	    free(word);
+	}
 	return ret;
     }
 }
