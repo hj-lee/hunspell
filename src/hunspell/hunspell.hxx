@@ -131,6 +131,9 @@ public:
   const char * get_version();
 
   int get_langnum() const;
+
+  /* need for putdic */
+  int input_conv(const char * word, char * dest);
   
   /* experimental and deprecated functions */
 
