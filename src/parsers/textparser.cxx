@@ -196,7 +196,7 @@ int TextParser::get_tokenpos()
 int TextParser::get_token_charpos()
 {    
 	// Not a good way to get charecter position.
-	// But in this way, there is no need to change all parsers next_token() method.
+	// But in this way, there is no need to change all parsers' next_token() method.
 	int pos = 0;
 	int charpos = 0;
 	while (pos < token) {
