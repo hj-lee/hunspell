@@ -41,10 +41,6 @@ protected:
   unsigned short *    wordchars_utf16;
   int                 wclen;
 
-  // for tracking UTF-8 character positions
-  int                 head_char;
-  int                 token_char;
-    
 public:
  
   TextParser();
