@@ -198,7 +198,7 @@ char * TextParser::next_token()
 		}
 		int nc_result = next_char(line[actual], &head);
 		head_char++;
-                if (nc_result) return NULL;
+		if (nc_result) return NULL;
 	}
 }
 
@@ -208,8 +208,17 @@ int TextParser::get_tokenpos()
 }
 
 int TextParser::get_token_charpos()
-{
-	return token_char;
+{    
+	// Not a good way to get charecter position.
+	// But in this way, there is no need to change all parsers next_token() method.
+	int pos = 0;
+	int charpos = 0;
+	while (pos < token) {
+		int nc_result = next_char(line[actual], &pos);
+		charpos++;
+		if (nc_result) break;
+	}
+	return charpos;
 }
 
 
